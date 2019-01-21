@@ -1,6 +1,6 @@
-# home-assistant-config-sleepcycle-test
+# home-assistant-sleepcycle_custom_component
 
-homeassitant emulated_hue custom component for Sleep Cycle, tested with 0.83.3
+homeassitant emulated_hue custom component for Sleep Cycle
 
 in configuration.yaml:
 
