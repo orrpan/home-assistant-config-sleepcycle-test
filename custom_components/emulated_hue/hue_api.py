@@ -40,6 +40,10 @@ class HueUsernameView(HomeAssistantView):
 
     async def get(self, request):
         """Handle a GET request."""
+        if not is_local(request[KEY_REAL_IP]):
+            return self.json_message('only local IPs allowed',
+                                     HTTP_BAD_REQUEST)
+
         return self.json([{'success': {'username': '12345678901234567890'}}])
 
     async def post(self, request):
@@ -86,13 +90,13 @@ class HueGroupView(HomeAssistantView):
             }
         }])
 
+class HueAllUsernameStateView(HomeAssistantView):
+    """Handle requests for getting and setting info about entities,
+    to get Sleep Cycle Working."""
 
-class HueAllLightsStateView(HomeAssistantView):
-    """Handle requests for getting and setting info about entities."""
-
-    url = '/api/{username}/lights'
-    name = 'emulated_hue:lights:state'
-    extra_urls = ['/api/{username}']
+    url = '/api/{username}'
+    name = 'emulated_hue:username:state'
+    extra_urls = ['/api/{username}/']
     requires_auth = False
 
     def __init__(self, config):
@@ -117,8 +121,41 @@ class HueAllLightsStateView(HomeAssistantView):
                 json_response[number] = entity_to_json(
                     self.config, entity, state, brightness)
 
-        #return self.json(json_response)
-        return self.json({'lights': json_response,'config': {'mac': '00:00:00:00:00:00'}})
+        json_response = \
+             {'lights': json_response, 'config': {'mac': '00:00:00:00:00:00'}}
+        return self.json(json_response)
+
+class HueAllLightsStateView(HomeAssistantView):
+    """Handle requests for getting and setting info about entities."""
+
+    url = '/api/{username}/lights'
+    name = 'emulated_hue:lights:state'
+    requires_auth = False
+
+    def __init__(self, config):
+        """Initialize the instance of the view."""
+        self.config = config
+
+    @core.callback
+    def get(self, request, username):
+        """Process a request to get the list of available lights."""
+        if not is_local(request[KEY_REAL_IP]):
+            return self.json_message('only local IPs allowed',
+                                     HTTP_BAD_REQUEST)
+
+        hass = request.app['hass']
+        json_response = {}
+
+        for entity in hass.states.async_all():
+            if self.config.is_entity_exposed(entity):
+                state, brightness = get_entity_state(self.config, entity)
+
+                number = self.config.entity_id_to_number(entity.entity_id)
+                json_response[number] = entity_to_json(
+                    self.config, entity, state, brightness)
+
+        return self.json(json_response)
+
 
 class HueOneLightStateView(HomeAssistantView):
     """Handle requests for getting and setting info about entities."""
@@ -330,7 +367,7 @@ def parse_hue_api_put_light_body(request_json, entity):
         if entity.domain == "light":
             if entity_features & SUPPORT_BRIGHTNESS:
                 report_brightness = True
-                result = (brightness > 0)
+                result = (brightness >= 0)
 
         elif entity.domain == "scene":
             brightness = None
@@ -345,6 +382,13 @@ def parse_hue_api_put_light_body(request_json, entity):
             brightness = round(level)
             report_brightness = True
             result = True
+
+    # select device
+    if (HUE_API_STATE_BRI or HUE_API_STATE_ON) not in request_json:
+        _LOGGER.info('Probably device select, request_json %s', request_json)
+        brightness = None
+        report_brightness = False
+        result = False
 
     return (result, brightness) if report_brightness else (result, None)
 
