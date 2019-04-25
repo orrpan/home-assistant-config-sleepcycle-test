@@ -14,3 +14,6 @@ emulated_hue:
       hidden: false
 ```
 
+# Changelog
+
+2019-04-25: updated for home-assistant 0.92.0
