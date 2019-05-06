@@ -15,5 +15,5 @@ emulated_hue:
 ```
 
 # Changelog
-
+2019-05-06: Since update of the app it does not work anymore, port seems to be wrong.
 2019-04-25: updated for home-assistant 0.92.0
