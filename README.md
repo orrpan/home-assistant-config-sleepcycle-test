@@ -15,5 +15,5 @@ emulated_hue:
 ```
 
 # Changelog
-2019-05-06: Broken since 0.92.0
+2019-05-06: ~~Broken since 0.92.0~~ <br>
 2019-04-25: updated for home-assistant 0.91.4
